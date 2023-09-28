@@ -1,23 +1,18 @@
 package config
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
-	"sync"
 
 	vault "github.com/hashicorp/vault/api"
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 var (
-	generalOnce     sync.Once
-	generalConfGlob *Config
-
-	vaultConfOnce sync.Once
-	vaultConfGlob *VaultConfig
-
 	//go:embed viper.yaml
 	rootConfigEmbed []byte
 )
@@ -28,6 +23,9 @@ const (
 )
 
 type VaultConfig struct {
+	Address string `yaml:"address"`
+	Token   string `yaml:"token"`
+	Env     string `yaml:"env"`
 }
 
 type Config struct {
@@ -52,44 +50,25 @@ type Config struct {
 }
 
 func GetGeneralConfig() *Config {
-	generalOnce.Do(func() {
-		parseVaultData()
-	})
-
-	return generalConfGlob
-}
-
-// func GetVaultConfig() *VaultConfig {
-// 	vaultConfOnce.Do(func() {
-// 		conf := VaultConfig{}
-
-// 		err := conf.Init(rootConfigEmbed)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-
-// 		vaultConfGlob = &conf
-// 	})
-
-//		return vaultConfGlob
-//	}
-func parseVaultData() {
-
-	ctx := context.Background()
+	var vaultConfGlob VaultConfig
+	var cfg *Config
+	err := cleanenv.ParseYAML(bytes.NewReader(rootConfigEmbed), &vaultConfGlob)
+	if err != nil {
+		panic(err)
+	}
 
 	// prepare a client with the given base address
 	vConf := vault.DefaultConfig()
-	vConf.Address = "http://127.0.0.1:8200"
+	vConf.Address = vaultConfGlob.Address
 
 	client, err := vault.NewClient(vConf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// authenticate with a root token (insecure)
-	client.SetToken("hvs.fpmG4vI4xoru4iHm3bGrqlnQ")
+	client.SetToken(vaultConfGlob.Token)
 
-	secret, err := client.KVv2(mountPath).Get(ctx, getSecretPath())
+	secret, err := client.KVv2(mountPath).Get(context.Background(), fmt.Sprint(secretPathBase, vaultConfGlob.Env))
 	if err != nil {
 		log.Fatalf("unable to read secret: %v", err)
 	}
@@ -98,36 +77,9 @@ func parseVaultData() {
 		log.Fatalf("unable to marshal secret map: %v", err)
 	}
 
-	err = json.Unmarshal(jsonb, &generalConfGlob)
+	err = json.Unmarshal(jsonb, &cfg)
 	if err != nil {
 		log.Fatalf("unable to unmarshal secret map: %v", err)
 	}
-	// conf := GetVaultConfig()
-
-	// client, err := kit.VaultClient(conf)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// ctx := context.Background()
-
-	// secret, err := client.KVv2(mountPath).Get(ctx, getSecretPath())
-	// if err != nil {
-	// 	log.Fatalf("unable to read secret: %v", err)
-	// }
-
-	// jsonb, err := json.Marshal(secret.Data)
-	// if err != nil {
-	// 	log.Fatalf("unable to marshal secret map: %v", err)
-	// }
-
-	// err = json.Unmarshal(jsonb, &generalConfGlob)
-	// if err != nil {
-	// 	log.Fatalf("unable to unmarshal secret map: %v", err)
-	// }
-}
-
-func getSecretPath() string {
-	// vault := GetVaultConfig()
-	return fmt.Sprint(secretPathBase, "dev")
+	return cfg
 }
