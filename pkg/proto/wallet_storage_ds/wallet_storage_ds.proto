@@ -1,0 +1,68 @@
+syntax = "proto3";
+package wallet_storage_ds;
+option go_package = "./wallet_storage_ds";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service WalletStorageArm {
+  rpc ConsumerList(google.protobuf.Empty) returns (ConsumerItems);
+  rpc ConsumerCreate(ConsumerCreateRequest) returns (ConsumerCreateResponse);
+  rpc ConsumerRead(EntityId) returns (ConsumerItems);
+  rpc ConsumerUpdate(ConsumerUpdateRequest) returns (StatusResponse);
+  rpc ConsumerDelete(EntityId) returns (StatusResponse);
+
+  rpc MethodList(google.protobuf.Empty) returns (MethodListResponse);
+}
+
+message EntityId {
+  string id = 1;
+}
+
+message StatusResponse {
+  enum Status {
+    STATUS_SUCCESS = 0;
+    STATUS_ERROR = 1;
+  }
+
+  Status status = 2;
+  string errorCode = 3;
+}
+
+message ConsumerItems {
+  message Item {
+    string id = 1;
+    string code = 2;
+    string slug = 3;
+    string secret = 4;
+    repeated string whiteListMethods = 5;
+    google.protobuf.Timestamp created_at = 6;
+  }
+
+  repeated Item items = 1;
+  StatusResponse requestStatus = 2;
+}
+
+message ConsumerCreateRequest {
+  string code = 2;
+  string slug = 3;
+  string secret = 4;
+  repeated string whiteListMethods = 5;
+}
+
+message ConsumerCreateResponse {
+  string id = 1;
+  StatusResponse requestStatus = 2;
+}
+
+message ConsumerUpdateRequest {
+  string id = 1; // which consumer update to
+  string code = 2;
+  string slug = 3;
+  string secret = 4;
+  repeated string whiteListMethods = 5;
+}
+
+message MethodListResponse {
+  repeated string methods = 1;
+}

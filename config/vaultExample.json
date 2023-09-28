@@ -1,0 +1,20 @@
+{
+  "app": {
+    "http_port": 8080,
+    "grpc_port": 8081
+  },
+  "postgres": {
+    "db": "wallet",
+    "host": "localhost",
+    "password": "secret",
+    "port": 5432,
+    "ssl_mode": "disable",
+    "timezone": "GMT",
+    "user": "postgres"
+  },
+  "redis": {
+    "addr": "localhost:6379",
+    "db": 0,
+    "password": ""
+  }
+}

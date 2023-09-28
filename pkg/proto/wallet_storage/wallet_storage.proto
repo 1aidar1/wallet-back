@@ -1,0 +1,344 @@
+syntax = "proto3";
+package wallet_storage;
+option go_package = "./wallet_storage";
+
+import "google/protobuf/timestamp.proto";
+
+service WalletStorage {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Info(InfoRequest) returns (InfoResponse);
+  rpc History(HistoryRequest) returns (HistoryResponse);
+  rpc HistoryByProvider(HistoryByProviderRequest) returns (HistoryResponse);
+  rpc Statistics(StatisticsRequest) returns (StatisticsResponse);
+  rpc Close(CloseRequest) returns (StatusResponse);
+  rpc Block(BlockRequest) returns (StatusResponse);
+  rpc Unblock(UnblockRequest) returns (StatusResponse);
+  rpc Identification(IdentificationRequest) returns (StatusResponse);
+
+  rpc Refill(RefillRequest) returns (RefillResponse);
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse);
+  rpc Hold(HoldRequest) returns (HoldResponse);
+  rpc Unhold(UnholdRequest) returns (UnholdResponse);
+  rpc Clear(ClearRequest) returns (ClearResponse);
+  rpc Refund(RefundRequest) returns (RefundResponse);
+  rpc Transfer(TransferRequest) returns (TransferResponse);
+  rpc TransactionInfo(TransactionInfoRequest) returns (TransactionInfoResponse);
+}
+
+message StatusResponse {
+  OperationStatus status = 1;
+  string errorCode = 2;
+}
+
+enum WalletStatus {
+  WALLET_STATUS_ACTIVE = 0;
+  WALLET_STATUS_BLOCKED = 1;
+  WALLET_STATUS_CLOSED = 2;
+}
+
+enum WalletIdentificationStatus {
+  WALLET_IDENTIFICATION_FULL = 0;
+  WALLET_IDENTIFICATION_BASIC = 1;
+  WALLET_IDENTIFICATION_NONE = 2;
+}
+
+enum TransactionType {
+  TRANSACTION_TYPE_PAY = 0;
+  TRANSACTION_TYPE_TRANSFER = 1;
+}
+
+enum OperationType {
+  OPERATION_TYPE_REFILL = 0;
+  OPERATION_TYPE_WITHDRAW = 1;
+  OPERATION_TYPE_REFUND = 2;
+  OPERATION_TYPE_HOLD = 3;
+  OPERATION_TYPE_CLEAR = 4;
+  OPERATION_TYPE_UNHOLD = 5;
+  OPERATION_TYPE_CANCEL = 6;
+}
+
+enum OperationStatus {
+  PROCESS = 0;
+  SUCCESS = 1;
+  ERROR = 2;
+}
+
+message WalletIdentifierRequest {
+  oneof IdentifierType {
+    string id = 1;
+    string phone = 2;
+  }
+}
+
+message WalletIdentifierCreateRequest {
+  string phone = 1;
+}
+
+message WalletIdentifierResponse {
+  string id = 1;
+  string phone = 2;
+}
+
+message PagingRequest {
+  int32 page = 1;
+  int32 itemsNumberPerPage = 2;
+}
+
+message Transaction {
+  string id = 1;
+  string consumerId = 2;      // пользователь API
+  TransactionType type = 3;
+  string description = 4;
+  string orderId = 5;
+  string serviceProviderId = 6;  // код потребителя API или мерча от имени которого был отправлен запрос
+  google.protobuf.Timestamp createdAt = 7;
+
+  message Operation {
+    string id = 1;
+    OperationType type = 2;
+    string walletId = 3;
+    double amount = 4;
+    OperationStatus status = 5;
+    string errorCode = 6;
+    optional double balanceBefore = 7;
+    optional double balanceAfter = 8;
+    optional double holdBalanceBefore = 9;
+    optional double holdBalanceAfter = 10;
+    google.protobuf.Timestamp createdAt = 11;
+  }
+
+  repeated Operation operations = 8;
+}
+
+message CreateRequest {
+  WalletIdentifierCreateRequest additionalIdentifiers = 1;
+  string currency = 2;
+  string country = 3;
+  string consumerId = 4;
+}
+
+message CreateResponse {
+  WalletIdentifierResponse identifiers = 1;
+  StatusResponse requestStatus = 2;
+
+}
+
+message InfoRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  string consumerId = 2;
+}
+
+message InfoResponse {
+  WalletIdentifierResponse identifiers = 1;
+  string currency = 2;
+  string country = 3;
+  WalletStatus walletStatus = 4;
+  double balance = 5;
+  double holdBalance = 6;
+  WalletIdentificationStatus identificationStatus = 7;
+  google.protobuf.Timestamp createdAt = 8;
+  StatusResponse requestStatus = 9;
+}
+
+message HistoryRequest {
+  WalletIdentifierRequest identifiers = 1;
+
+  google.protobuf.Timestamp dateStart = 2;
+  google.protobuf.Timestamp dateEnd = 3;
+
+  PagingRequest paging = 4;
+
+  string consumerId = 5;
+}
+message HistoryByProviderRequest {
+  WalletIdentifierRequest identifiers = 1;
+
+  google.protobuf.Timestamp dateStart = 2;
+  google.protobuf.Timestamp dateEnd = 3;
+
+  PagingRequest paging = 4;
+
+  string consumerId = 5;
+  string providerId = 6;
+}
+
+
+message HistoryResponse {
+  int64 totalItemsCount = 1;
+  repeated Transaction transactions = 2;
+  StatusResponse requestStatus = 3;
+}
+
+message StatisticsRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+
+  message Period {
+    google.protobuf.Timestamp from = 1;
+    google.protobuf.Timestamp to = 2;
+  }
+
+  Period period = 2;
+
+  string consumerId = 3;
+}
+
+message StatisticsResponse {
+  message Statistics {
+    double paymentsAmount = 1;
+    int64 paymentsCount = 2;
+  }
+
+  Statistics refill = 1;
+  Statistics withdraw = 2;
+
+  StatusResponse requestStatus = 3;
+}
+
+message CloseRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  WalletIdentifierRequest correspondingWalletIdentifier = 2;
+  string description = 3;
+  string consumerId = 4;
+}
+
+message BlockRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  string description = 2;
+  string consumerId = 3;
+}
+
+message UnblockRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  string description = 2;
+  string consumerId = 3;
+}
+
+message IdentificationRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  WalletIdentificationStatus status = 2;
+  string consumerId = 3;
+}
+
+message RefillRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  double amount = 2;
+  string description = 3;
+  string orderId = 4;
+  string consumerId = 5;           // пользователь API
+  string serviceProviderId = 6;  // код потребителя API или мерча от имени которого был отправлен запрос
+}
+
+message RefillResponse {
+  string transactionId = 1;
+  string operationId = 2;
+  StatusResponse requestStatus = 3;
+  google.protobuf.Timestamp createdAt = 4;
+}
+
+message WithdrawRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  double amount = 2;
+  string description = 3;
+  string orderId = 4;
+  string consumerId = 5;           // пользователь API
+  string serviceProviderId = 6;  // код потребителя API или мерча от имени которого был отправлен запрос.
+}
+
+message WithdrawResponse {
+  string transactionId = 1;
+  string operationId = 2;
+  StatusResponse requestStatus = 3;
+  google.protobuf.Timestamp createdAt = 4;
+}
+
+message HoldRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  double amount = 2;
+  string description = 3;
+  string orderId = 4;
+  string consumerId = 5;           // пользователь API
+  string serviceProviderId = 6;  // код потребителя API или мерча от имени которого был отправлен запрос
+}
+
+message HoldResponse {
+  string transactionId = 1;
+  string operationId = 2;
+  StatusResponse requestStatus = 3;
+  google.protobuf.Timestamp createdAt = 4;
+}
+
+message UnholdRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  string description = 2;
+  string transactionId = 3;
+  string consumerId = 4;
+}
+
+message UnholdResponse {
+  string transactionId = 1;
+  string operationId = 2;
+  StatusResponse requestStatus = 3;
+  google.protobuf.Timestamp createdAt = 4;
+}
+
+message ClearRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  double amount = 2;
+  string transactionId = 3;
+  string consumerId = 4;
+}
+
+message ClearResponse {
+  string operationId = 2;
+  StatusResponse requestStatus = 3;
+  google.protobuf.Timestamp createdAt = 4;
+}
+
+message RefundRequest {
+  WalletIdentifierRequest walletIdentifier = 1;
+  string transactionId = 2;
+  string consumerId = 3;
+}
+
+message RefundResponse {
+  string transactionId = 1;
+  string operationId = 2;
+  StatusResponse requestStatus = 3;
+  google.protobuf.Timestamp createdAt = 4;
+}
+
+message TransferRequest {
+  WalletIdentifierRequest withdrawWalletIdentifier = 1;
+  WalletIdentifierRequest refillWalletIdentifier = 2;
+
+  double amount = 3;
+  string description = 4;
+  string serviceProviderId = 5;  // код потребителя API или мерча от имени которого был отправлен запрос
+  string orderId = 6;
+  string consumerId = 7;
+}
+
+message TransferResponse {
+  string transactionId = 1;
+  StatusResponse requestStatus = 2;
+  google.protobuf.Timestamp createdAt = 3;
+}
+
+message TransactionInfoRequest {
+  string consumerId = 1;
+  WalletIdentifierRequest walletIdentifier = 2;
+  oneof findBy {
+    Order order = 3;
+    string transactionId = 4;
+  }
+
+  message Order {
+    string serviceProviderId = 1;
+    string orderId = 2;
+  }
+}
+
+message TransactionInfoResponse {
+  StatusResponse requestStatus = 1;
+  Transaction transaction = 2;
+}

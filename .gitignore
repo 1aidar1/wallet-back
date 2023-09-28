@@ -1,0 +1,23 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+.vscode
+.idea/
+vendor/
+bin/
+
+# Executables
+*.exe
+*.out
+*.test
+
+# GoLand-specific files
+/.idea/workspace.xml
+/.idea/tasks.xml
+/.idea/go.mod.iml
+
+compose/docker
+!compose/docker/vault
